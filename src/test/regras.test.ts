@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatPreco } from "@/lib/format";
 import { parseDetail } from "@/lib/api";
-import { validarCadastro } from "@/routes/cadastro";
+import { validarCadastro } from "@/lib/validacao";
 
 const base = { nome: "Ana", email: "ana@ex.com", telefone: "31999990000", senha: "12345678" };
 
