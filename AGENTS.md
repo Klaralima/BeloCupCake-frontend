@@ -28,3 +28,6 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+- All HTTP calls to the external FastAPI backend go through src/lib/api.ts (base URL from VITE_API_BASE_URL); why: one place for config, auth header and error parsing.
+- Session token lives only in React memory (src/lib/auth.tsx); why: first-version requirement, reload requires login.
