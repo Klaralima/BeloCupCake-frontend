@@ -2,7 +2,7 @@ import type { InputHTMLAttributes } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function Field({ label, error, id, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; id: string }) {
+export function Field({ label, error, id, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string | undefined; id: string }) {
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>

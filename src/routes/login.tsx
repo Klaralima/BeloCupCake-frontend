@@ -34,8 +34,8 @@ function Login() {
     ev.preventDefault();
     setGeral(null);
     const v: Record<string, string> = {};
-    if (!email.trim()) v.email = "Informe seu e-mail.";
-    if (!senha) v.senha = "Informe sua senha.";
+    if (!email.trim()) v["email"] = "Informe seu e-mail.";
+    if (!senha) v["senha"] = "Informe sua senha.";
     setErros(v);
     if (Object.keys(v).length) return;
     setEnviando(true);
@@ -68,8 +68,8 @@ function Login() {
         <PendingConnection />
       ) : (
         <form onSubmit={onSubmit} noValidate className="space-y-4 rounded-2xl bg-card p-5 shadow-card">
-          <Field id="email" label="E-mail" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={erros.email} />
-          <Field id="senha" label="Senha" type="password" autoComplete="current-password" maxLength={128} value={senha} onChange={(e) => setSenha(e.target.value)} error={erros.senha} />
+          <Field id="email" label="E-mail" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={erros["email"]} />
+          <Field id="senha" label="Senha" type="password" autoComplete="current-password" maxLength={128} value={senha} onChange={(e) => setSenha(e.target.value)} error={erros["senha"]} />
           {geral && <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{geral}</p>}
           <Button type="submit" size="touch" className="w-full" disabled={enviando}>
             {enviando ? "Entrando..." : "Entrar"}

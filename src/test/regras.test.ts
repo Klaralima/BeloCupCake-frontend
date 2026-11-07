@@ -18,6 +18,6 @@ describe("regras", () => {
   });
   it("associa erros 422 aos campos", () => {
     const r = parseDetail([{ loc: ["body", "email"], msg: "value is not a valid email address" }]);
-    expect(r.fieldErrors.email).toBe("Informe um e-mail válido.");
+    expect(r.fieldErrors["email"]).toBe("Informe um e-mail válido.");
   });
 });
