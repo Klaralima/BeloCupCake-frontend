@@ -47,7 +47,7 @@ export type ErrorKind = "not_configured" | "network" | "http";
 
 export class ApiError extends Error {
   kind: ErrorKind;
-  status?: number;
+  status: number | undefined;
   fieldErrors: Record<string, string>;
   constructor(kind: ErrorKind, message: string, status?: number, fieldErrors: Record<string, string> = {}) {
     super(message);
@@ -73,7 +73,7 @@ interface ValidationItem {
 }
 
 /** Converte o campo `detail` do FastAPI (string ou lista) em mensagem + erros por campo. */
-export function parseDetail(detail: unknown): { message?: string; fieldErrors: Record<string, string> } {
+export function parseDetail(detail: unknown): { message?: string | undefined; fieldErrors: Record<string, string> } {
   const fieldErrors: Record<string, string> = {};
   if (typeof detail === "string") return { message: detail, fieldErrors };
   if (Array.isArray(detail)) {
@@ -125,14 +125,14 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
   }
   const headers: Record<string, string> = { Accept: "application/json" };
   if (opts.body !== undefined) headers["Content-Type"] = "application/json";
-  if (opts.token) headers.Authorization = `Bearer ${opts.token}`;
+  if (opts.token) headers["Authorization"] = `Bearer ${opts.token}`;
 
   let res: Response;
   try {
     res = await fetch(url.toString(), {
       method: opts.method ?? "GET",
       headers,
-      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : null,
     });
   } catch {
     throw new ApiError("network", "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.");

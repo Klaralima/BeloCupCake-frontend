@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>): { cadastro?: string } =>
-    typeof s.cadastro === "string" ? { cadastro: s.cadastro } : {},
+    typeof s["cadastro"] === "string" ? { cadastro: s["cadastro"] } : {},
   head: () => ({
     meta: [
       { title: "Entrar | BeloCupCake" },
