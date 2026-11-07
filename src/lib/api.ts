@@ -2,7 +2,7 @@
 // Configure a URL base em VITE_API_BASE_URL (arquivo .env na raiz do projeto).
 
 export const API_BASE_URL: string = (
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? ""
+  (import.meta.env["VITE_API_BASE_URL"] as string | undefined) ?? ""
 ).replace(/\/+$/, "");
 
 export const isApiConfigured = () => API_BASE_URL.length > 0;
