@@ -34,10 +34,10 @@ React, TypeScript, TanStack Start/Router, TanStack Query, Vite, Tailwind CSS e c
 
 ## Execução local
 
-Pré-requisitos: Node.js 24 e npm. Copie a URL HTTPS pelo botão **Code** do GitHub e substitua `<URL-DESTE-REPOSITORIO>` no comando abaixo.
+Pré-requisitos: Node.js 24 e npm.
 
 ```bash
-git clone <URL-DESTE-REPOSITORIO> BeloCupCake-frontend
+git clone https://github.com/Klaralima/BeloCupCake-frontend.git
 cd BeloCupCake-frontend
 npm install
 ```
