@@ -1,0 +1,314 @@
+import { useRef, useState, type FormEvent } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest, type Produto } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { formatPreco } from "@/lib/format";
+import { Campo, Pedidos } from "./Commerce";
+import { Button } from "./ui/button";
+import { ErrorState, Loading } from "./StatusViews";
+
+interface Regiao {
+  id: number;
+  nome: string;
+  taxa: string;
+  prazo_minutos: number;
+  ativo: boolean;
+}
+const panel = "my-5 space-y-4 rounded-2xl border bg-card p-5 shadow-card";
+
+export function Administration() {
+  const [aba, setAba] = useState("pedidos");
+  return (
+    <>
+      <nav className="my-4 flex flex-wrap gap-2">
+        {["pedidos", "produtos", "entrega"].map((a) => (
+          <Button key={a} variant={aba === a ? "default" : "outline"} onClick={() => setAba(a)}>
+            {a === "entrega" ? "Regiões e bairros" : a === "produtos" ? "Produtos" : "Pedidos"}
+          </Button>
+        ))}
+      </nav>
+      {aba === "pedidos" ? (
+        <Pedidos perfil="ADMINISTRADOR" />
+      ) : aba === "produtos" ? (
+        <Produtos />
+      ) : (
+        <Regioes />
+      )}
+    </>
+  );
+}
+
+function Produtos() {
+  const { token, usuario } = useAuth();
+  const client = useQueryClient();
+  const [pagina, setPagina] = useState(0);
+  const [edicao, setEdicao] = useState<Produto | null>(null);
+  const [formulario, setFormulario] = useState(false);
+  const [erro, setErro] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const trava = useRef(false);
+  const q = useQuery({
+    queryKey: ["protegido", usuario?.id, "produtos-admin", pagina],
+    queryFn: () =>
+      apiRequest<Produto[]>("/admin/produtos", {
+        token,
+        query: { limite: 20, deslocamento: pagina * 20 },
+      }),
+    retry: false,
+  });
+  async function salvar(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (trava.current) return;
+    trava.current = true;
+    setOcupado(true);
+    setErro("");
+    const f = new FormData(event.currentTarget);
+    const imagem = String(f.get("imagem_url") ?? "").trim();
+    const body = {
+      nome: f.get("nome"),
+      descricao: f.get("descricao"),
+      sabor: f.get("sabor"),
+      tamanho: f.get("tamanho"),
+      preco: String(f.get("preco")).replace(",", "."),
+      estoque: Number(f.get("estoque")),
+      imagem_url: imagem || null,
+      ...(edicao ? { ativo: f.get("ativo") === "on" } : {}),
+    };
+    try {
+      await apiRequest(edicao ? `/produtos/${edicao.id}` : "/produtos", {
+        token,
+        method: edicao ? "PATCH" : "POST",
+        body,
+      });
+      setFormulario(false);
+      setEdicao(null);
+      await client.invalidateQueries({ queryKey: ["protegido"] });
+      await client.invalidateQueries({ queryKey: ["produtos"] });
+      await client.invalidateQueries({ queryKey: ["produto"] });
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha ao salvar.");
+    } finally {
+      trava.current = false;
+      setOcupado(false);
+    }
+  }
+  return (
+    <section className={panel}>
+      <h2 className="text-2xl font-bold">Produtos</h2>
+      <Button
+        onClick={() => {
+          setEdicao(null);
+          setFormulario(true);
+          setErro("");
+        }}
+      >
+        Novo produto
+      </Button>
+      {formulario && (
+        <form key={edicao?.id ?? "novo"} onSubmit={salvar}>
+          <fieldset disabled={ocupado} className="grid gap-4 sm:grid-cols-2">
+            <Campo nome="nome" titulo="Nome" valor={edicao?.nome ?? ""} max={150} />
+            <Campo nome="descricao" titulo="Descrição" valor={edicao?.descricao ?? ""} max={5000} />
+            <Campo nome="sabor" titulo="Sabor" valor={edicao?.sabor ?? ""} max={100} />
+            <Campo nome="tamanho" titulo="Tamanho" valor={edicao?.tamanho ?? ""} max={30} />
+            <Campo nome="preco" titulo="Preço (ex. 8,50)" valor={edicao?.preco ?? ""} />
+            <Campo nome="estoque" titulo="Estoque" tipo="number" valor={edicao?.estoque ?? 0} />
+            <Campo
+              nome="imagem_url"
+              titulo="Endereço da imagem"
+              tipo="url"
+              valor={edicao?.imagem_url ?? ""}
+              max={2048}
+              obrigatorio={false}
+            />
+            {edicao && (
+              <label>
+                <input type="checkbox" name="ativo" defaultChecked={edicao.ativo} /> Produto ativo
+              </label>
+            )}
+            <div className="flex gap-2">
+              <Button type="submit">{ocupado ? "Salvando..." : "Salvar"}</Button>
+              <Button type="button" variant="outline" onClick={() => setFormulario(false)}>
+                Fechar
+              </Button>
+            </div>
+            {erro && (
+              <p role="alert" className="text-destructive">
+                {erro}
+              </p>
+            )}
+          </fieldset>
+        </form>
+      )}
+      {q.isPending ? (
+        <Loading />
+      ) : q.isError ? (
+        <ErrorState error={q.error} onRetry={() => q.refetch()} />
+      ) : (
+        <>
+          {q.data.length === 0 && <p>Nenhum produto nesta página.</p>}
+          {q.data.map((p) => (
+            <div
+              key={p.id}
+              className="flex flex-wrap items-center justify-between gap-3 border-b pb-3"
+            >
+              <div>
+                <strong>{p.nome}</strong>
+                <p>
+                  {formatPreco(p.preco)} · Estoque {p.estoque} · {p.ativo ? "Ativo" : "Inativo"}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEdicao(p);
+                  setFormulario(true);
+                  setErro("");
+                }}
+              >
+                Editar
+              </Button>
+            </div>
+          ))}
+          <div className="flex gap-3">
+            <Button variant="outline" disabled={pagina === 0} onClick={() => setPagina(pagina - 1)}>
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              disabled={q.data.length < 20}
+              onClick={() => setPagina(pagina + 1)}
+            >
+              Próxima
+            </Button>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function Regioes() {
+  const { token, usuario } = useAuth();
+  const client = useQueryClient();
+  const [mensagem, setMensagem] = useState("");
+  const [erro, setErro] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const trava = useRef(false);
+  const q = useQuery({
+    queryKey: ["protegido", usuario?.id, "regioes"],
+    queryFn: async () => {
+      const todas: Regiao[] = [];
+      let pagina: Regiao[];
+      do {
+        pagina = await apiRequest<Regiao[]>("/admin/regioes", {
+          token,
+          query: { limite: 100, deslocamento: todas.length },
+        });
+        todas.push(...pagina);
+      } while (pagina.length === 100);
+      return todas;
+    },
+    retry: false,
+  });
+  async function salvar(event: FormEvent<HTMLFormElement>, bairro: boolean) {
+    event.preventDefault();
+    if (trava.current) return;
+    const form = event.currentTarget;
+    const f = new FormData(form);
+    trava.current = true;
+    setOcupado(true);
+    setErro("");
+    setMensagem("");
+    const body = bairro
+      ? {
+          nome: f.get("nome"),
+          regiao_entrega_id: Number(f.get("regiao")),
+          cidade: f.get("cidade"),
+          uf: String(f.get("uf")).toUpperCase(),
+        }
+      : {
+          nome: f.get("nome"),
+          taxa: String(f.get("taxa")).replace(",", "."),
+          prazo_minutos: Number(f.get("prazo")),
+        };
+    try {
+      await apiRequest(bairro ? "/admin/bairros" : "/admin/regioes", {
+        token,
+        method: "POST",
+        body,
+      });
+      form.reset();
+      setMensagem(bairro ? "Bairro cadastrado." : "Região cadastrada.");
+      await client.invalidateQueries({ queryKey: ["protegido"] });
+      await client.invalidateQueries({ queryKey: ["bairros-checkout"] });
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha ao cadastrar.");
+    } finally {
+      trava.current = false;
+      setOcupado(false);
+    }
+  }
+  return (
+    <section className={panel}>
+      <h2 className="text-2xl font-bold">Regiões e bairros atendidos</h2>
+      <form onSubmit={(e) => salvar(e, false)}>
+        <fieldset disabled={ocupado} className="space-y-3">
+          <h3 className="text-xl font-bold">Nova região</h3>
+          <Campo nome="nome" titulo="Nome da região" max={100} />
+          <Campo nome="taxa" titulo="Taxa (ex. 5,00)" />
+          <Campo nome="prazo" titulo="Prazo em minutos" tipo="number" />
+          <Button type="submit">Cadastrar região</Button>
+        </fieldset>
+      </form>
+      {q.isPending ? (
+        <Loading />
+      ) : q.isError ? (
+        <ErrorState error={q.error} onRetry={() => q.refetch()} />
+      ) : (
+        <>
+          <ul>
+            {q.data.map((r) => (
+              <li key={r.id}>
+                {r.nome} · {formatPreco(r.taxa)} · {r.prazo_minutos} minutos
+              </li>
+            ))}
+          </ul>
+          <form onSubmit={(e) => salvar(e, true)}>
+            <fieldset disabled={ocupado || !q.data.some((r) => r.ativo)} className="space-y-3">
+              <h3 className="text-xl font-bold">Novo bairro</h3>
+              <label className="block">
+                Região
+                <select
+                  name="regiao"
+                  required
+                  defaultValue=""
+                  className="w-full rounded-lg border bg-background p-3"
+                >
+                  <option value="">Selecione</option>
+                  {q.data
+                    .filter((r) => r.ativo)
+                    .map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.nome}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <Campo nome="nome" titulo="Nome do bairro" max={100} />
+              <Campo nome="cidade" titulo="Cidade" max={100} />
+              <Campo nome="uf" titulo="UF (ex. PB)" max={2} />
+              <Button type="submit">Cadastrar bairro</Button>
+            </fieldset>
+          </form>
+        </>
+      )}
+      {mensagem && <p role="status">{mensagem}</p>}
+      {erro && (
+        <p role="alert" className="text-destructive">
+          {erro}
+        </p>
+      )}
+    </section>
+  );
+}
