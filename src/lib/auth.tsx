@@ -1,5 +1,14 @@
 import type React from "react";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, setUnauthorizedHandler, type Usuario } from "./api";
 
@@ -32,7 +41,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [sessaoExpirada, setSessaoExpirada] = useState(false);
 
+  const sessionVersion = useRef(0);
+  const activeToken = useRef<string | null>(null);
+
   const clear = useCallback(() => {
+    sessionVersion.current += 1;
+    activeToken.current = null;
+    void queryClient.cancelQueries({ queryKey: ["protegido"] });
     setToken(null);
     setUsuario(null);
     queryClient.removeQueries({ queryKey: ["protegido"] });
@@ -44,21 +59,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clear]);
 
   useEffect(() => {
-    setUnauthorizedHandler(() => {
+    setUnauthorizedHandler((requestToken) => {
+      if (requestToken !== activeToken.current) return;
       clear();
       setSessaoExpirada(true);
     });
-    return () => setUnauthorizedHandler(null);
+    return () => {
+      sessionVersion.current += 1;
+      setUnauthorizedHandler(null);
+    };
   }, [clear]);
 
-  const login = useCallback(async (email: string, senha: string) => {
-    const t = await api.login(email, senha);
-    const me = await api.meusDados(t.access_token);
-    setToken(t.access_token);
-    setUsuario(me);
-    setSessaoExpirada(false);
-    return me;
-  }, []);
+  const login = useCallback(
+    async (email: string, senha: string) => {
+      const version = ++sessionVersion.current;
+      const t = await api.login(email, senha);
+      if (version !== sessionVersion.current) throw new Error("Login cancelado.");
+      const me = await api.meusDados(t.access_token);
+      if (version !== sessionVersion.current) throw new Error("Login cancelado.");
+      void queryClient.cancelQueries({ queryKey: ["protegido"] });
+      queryClient.removeQueries({ queryKey: ["protegido"] });
+      activeToken.current = t.access_token;
+      setToken(t.access_token);
+      setUsuario(me);
+      setSessaoExpirada(false);
+      return me;
+    },
+    [queryClient],
+  );
 
   const value = useMemo(
     () => ({ token, usuario, sessaoExpirada, login, logout }),

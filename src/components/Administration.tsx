@@ -4,6 +4,7 @@ import { apiRequest, type Produto } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatPreco } from "@/lib/format";
 import { Campo, Pedidos } from "./Commerce";
+import { safeImageUrl } from "./ProductImage";
 import { Button } from "./ui/button";
 import { ErrorState, Loading } from "./StatusViews";
 
@@ -75,6 +76,9 @@ function Produtos() {
       ...(edicao ? { ativo: f.get("ativo") === "on" } : {}),
     };
     try {
+      if (imagem && !safeImageUrl(imagem)) {
+        throw new Error("Informe uma URL HTTPS de imagem, sem usuário ou senha no endereço.");
+      }
       await apiRequest(edicao ? `/produtos/${edicao.id}` : "/produtos", {
         token,
         method: edicao ? "PATCH" : "POST",
@@ -115,7 +119,7 @@ function Produtos() {
             <Campo nome="estoque" titulo="Estoque" tipo="number" valor={edicao?.estoque ?? 0} />
             <Campo
               nome="imagem_url"
-              titulo="Endereço da imagem"
+              titulo="Endereço HTTPS da imagem"
               tipo="url"
               valor={edicao?.imagem_url ?? ""}
               max={2048}

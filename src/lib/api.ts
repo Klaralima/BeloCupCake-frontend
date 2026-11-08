@@ -49,7 +49,12 @@ export class ApiError extends Error {
   kind: ErrorKind;
   status: number | undefined;
   fieldErrors: Record<string, string>;
-  constructor(kind: ErrorKind, message: string, status?: number, fieldErrors: Record<string, string> = {}) {
+  constructor(
+    kind: ErrorKind,
+    message: string,
+    status?: number,
+    fieldErrors: Record<string, string> = {},
+  ) {
     super(message);
     this.kind = kind;
     this.status = status;
@@ -73,7 +78,10 @@ interface ValidationItem {
 }
 
 /** Converte o campo `detail` do FastAPI (string ou lista) em mensagem + erros por campo. */
-export function parseDetail(detail: unknown): { message?: string | undefined; fieldErrors: Record<string, string> } {
+export function parseDetail(detail: unknown): {
+  message?: string | undefined;
+  fieldErrors: Record<string, string>;
+} {
   const fieldErrors: Record<string, string> = {};
   if (typeof detail === "string") return { message: detail, fieldErrors };
   if (Array.isArray(detail)) {
@@ -102,7 +110,7 @@ function translateMsg(msg: string): string {
   return msg;
 }
 
-type UnauthorizedHandler = () => void;
+type UnauthorizedHandler = (requestToken: string) => void;
 let onUnauthorized: UnauthorizedHandler | null = null;
 export function setUnauthorizedHandler(fn: UnauthorizedHandler | null) {
   onUnauthorized = fn;
@@ -131,11 +139,17 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
   try {
     res = await fetch(url.toString(), {
       method: opts.method ?? "GET",
+      credentials: "omit",
+      redirect: "error",
+      cache: opts.token || opts.body !== undefined ? "no-store" : "default",
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : null,
     });
   } catch {
-    throw new ApiError("network", "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.");
+    throw new ApiError(
+      "network",
+      "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
+    );
   }
 
   const text = await res.text();
@@ -149,8 +163,10 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
   }
 
   if (!res.ok) {
-    const { message, fieldErrors } = parseDetail((data as { detail?: unknown } | undefined)?.detail);
-    if (res.status === 401 && opts.token && onUnauthorized) onUnauthorized();
+    const { message, fieldErrors } = parseDetail(
+      (data as { detail?: unknown } | undefined)?.detail,
+    );
+    if (res.status === 401 && opts.token && onUnauthorized) onUnauthorized(opts.token);
     throw new ApiError(
       "http",
       message ?? STATUS_MESSAGES[res.status] ?? `Erro inesperado (${res.status}).`,
@@ -166,10 +182,14 @@ export const PAGE_SIZE = 12; // contrato: limite entre 1 e 100
 export const api = {
   listarProdutos: (limite: number, deslocamento: number) =>
     apiRequest<Produto[]>("/produtos", {
-      query: { limite: Math.min(100, Math.max(1, limite)), deslocamento: Math.max(0, deslocamento) },
+      query: {
+        limite: Math.min(100, Math.max(1, limite)),
+        deslocamento: Math.max(0, deslocamento),
+      },
     }),
   obterProduto: (id: number) => apiRequest<Produto>(`/produtos/${id}`),
-  criarUsuario: (dados: UsuarioCriar) => apiRequest<Usuario>("/usuarios", { method: "POST", body: dados }),
+  criarUsuario: (dados: UsuarioCriar) =>
+    apiRequest<Usuario>("/usuarios", { method: "POST", body: dados }),
   login: (email: string, senha: string) =>
     apiRequest<TokenResposta>("/auth/login", { method: "POST", body: { email, senha } }),
   meusDados: (token: string) => apiRequest<Usuario>("/usuarios/me", { token }),
