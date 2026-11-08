@@ -1,6 +1,12 @@
 # BeloCupCake — Frontend
 
-Interface web responsiva do projeto acadêmico BeloCupCake, com catálogo, compra de cupcakes e áreas de administração e entrega. O repositório mantém seu nome original `pixel-perfect-replica`, mas o aplicativo desenvolvido é o BeloCupCake.
+Desenvolvi o BeloCupCake como projeto acadêmico do curso de Engenharia de Software. A proposta é representar o processo de compra e entrega de cupcakes, desde a escolha dos produtos até a conclusão da entrega.
+
+Este repositório reúne a interface web, adaptada para uso no computador e no celular. O backend foi desenvolvido em Python com FastAPI e utiliza MySQL para armazenar os dados.
+
+## Objetivo do projeto
+
+Meu foco de aprendizagem foi o desenvolvimento do backend, a modelagem do banco de dados, as regras de negócio e a integração entre as partes da aplicação. Para construir a interface, utilizei o apoio do Lovable e de ferramentas de IA. Defini o escopo, configurei a hospedagem e validei o funcionamento do sistema nos três perfis de acesso.
 
 ## Links
 
@@ -8,7 +14,6 @@ Interface web responsiva do projeto acadêmico BeloCupCake, com catálogo, compr
 - Backend e documentação geral: https://github.com/Klaralima/BeloCupCake
 - Documentação interativa da API: https://belocupcake-api.duckdns.org/docs
 - Roteiro de demonstração: https://github.com/Klaralima/BeloCupCake/blob/main/docs/DEMONSTRACAO.md
-- Editor Lovable: https://lovable.dev/projects/07fe7566-94cb-441f-8c84-22ca3dcd3daa
 
 O endereço DuckDNS atende a API; o link do Lovable abre a interface para os usuários.
 
@@ -29,11 +34,11 @@ React, TypeScript, TanStack Start/Router, TanStack Query, Vite, Tailwind CSS e c
 
 ## Execução local
 
-Ambiente utilizado na validação local: Node.js 24 e npm.
+Pré-requisitos: Node.js 24 e npm. Copie a URL HTTPS pelo botão **Code** do GitHub e substitua `<URL-DESTE-REPOSITORIO>` no comando abaixo.
 
 ```bash
-git clone https://github.com/Klaralima/pixel-perfect-replica.git
-cd pixel-perfect-replica
+git clone <URL-DESTE-REPOSITORIO> BeloCupCake-frontend
+cd BeloCupCake-frontend
 npm install
 ```
 
@@ -81,9 +86,9 @@ npm test
 npm run build
 ```
 
-A última validação local registrou 8 testes aprovados, TypeScript sem erros e build concluído. Os testes incluem limite de estoque no carrinho, prevenção de envio duplicado, manutenção do carrinho quando a compra é rejeitada e chamada de aceite da entrega. As chamadas HTTP são simuladas nos testes; valide também o fluxo com a API publicada.
+A aplicação conta com 8 testes automatizados no frontend. Na validação desta versão, os testes, a verificação TypeScript e a compilação foram concluídos sem erros. Os testes incluem limite de estoque no carrinho, prevenção de envio duplicado, manutenção do carrinho quando a compra é rejeitada e chamada de aceite da entrega. As chamadas HTTP são simuladas nos testes; valide também o fluxo com a API publicada.
 
-Em 08/11/2026, a responsável pelo projeto confirmou manualmente o fluxo publicado de cadastro, compra, aceite e entrega.
+Em 08/11/2026, testei o fluxo completo na aplicação publicada: cadastro, login, compra, preparo, aceite pelo entregador e conclusão da entrega.
 
 ## Publicação
 
@@ -95,4 +100,4 @@ O projeto utiliza TanStack Start e a configuração de build do Lovable, com com
 
 Token e carrinho permanecem apenas na memória. Recarregar a página exige novo login e limpa o carrinho. Não há pagamento online, upload de fotos ou rastreamento GPS. Não há persistência da sessão entre recargas. Os perfis privilegiados são preparados pela responsável, e não selecionados no cadastro público.
 
-Para avaliação acadêmica, entregue as senhas das contas demonstrativas em canal privado e conceda acesso aos repositórios se permanecerem privados.
+O projeto tem finalidade acadêmica e não é utilizado para vendas reais. As credenciais das contas de demonstração são disponibilizadas separadamente aos avaliadores.
