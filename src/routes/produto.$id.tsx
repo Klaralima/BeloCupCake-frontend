@@ -1,3 +1,4 @@
+import { Comprar } from "@/components/Commerce";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
@@ -10,9 +11,15 @@ export const Route = createFileRoute("/produto/$id")({
   head: () => ({
     meta: [
       { title: "Detalhes do cupcake | BeloCupCake" },
-      { name: "description", content: "Veja sabor, tamanho, preço e disponibilidade deste cupcake." },
+      {
+        name: "description",
+        content: "Veja sabor, tamanho, preço e disponibilidade deste cupcake.",
+      },
       { property: "og:title", content: "Detalhes do cupcake | BeloCupCake" },
-      { property: "og:description", content: "Veja sabor, tamanho, preço e disponibilidade deste cupcake." },
+      {
+        property: "og:description",
+        content: "Veja sabor, tamanho, preço e disponibilidade deste cupcake.",
+      },
     ],
   }),
   component: Detalhe,
@@ -29,15 +36,35 @@ function Detalhe() {
   });
 
   const back = (
-    <Link to="/" className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-primary">
+    <Link
+      to="/"
+      className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-primary"
+    >
       <ArrowLeft className="h-4 w-4" /> Voltar ao catálogo
     </Link>
   );
 
   if (!Number.isInteger(num) || num <= 0 || (q.error instanceof ApiError && q.error.status === 404))
-    return <div>{back}<Empty title="Produto não encontrado" text="Este cupcake não existe ou foi removido." /></div>;
-  if (q.isPending) return <div>{back}<Loading /></div>;
-  if (q.isError) return <div>{back}<ErrorState error={q.error} onRetry={() => q.refetch()} /></div>;
+    return (
+      <div>
+        {back}
+        <Empty title="Produto não encontrado" text="Este cupcake não existe ou foi removido." />
+      </div>
+    );
+  if (q.isPending)
+    return (
+      <div>
+        {back}
+        <Loading />
+      </div>
+    );
+  if (q.isError)
+    return (
+      <div>
+        {back}
+        <ErrorState error={q.error} onRetry={() => q.refetch()} />
+      </div>
+    );
 
   const p = q.data;
   const disponivel = p.ativo && p.estoque > 0;
@@ -54,7 +81,10 @@ function Detalhe() {
             <span className="rounded-full bg-secondary px-3 py-1">Tamanho: {p.tamanho}</span>
           </div>
           <p className="leading-relaxed text-muted-foreground">{p.descricao}</p>
-          <p className={disponivel ? "font-semibold text-success" : "font-semibold text-destructive"}>
+          <Comprar produto={p} />
+          <p
+            className={disponivel ? "font-semibold text-success" : "font-semibold text-destructive"}
+          >
             {disponivel ? `Disponível (${p.estoque} em estoque)` : "Indisponível no momento"}
           </p>
         </div>
