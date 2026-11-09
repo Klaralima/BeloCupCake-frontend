@@ -127,21 +127,21 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
   if (!isApiConfigured()) {
     throw new ApiError("not_configured", "A conexão com a API ainda não foi configurada.");
   }
-  const url = new URL(API_BASE_URL + path);
+  const url = new URL("/bff" + path, window.location.origin);
   for (const [k, v] of Object.entries(opts.query ?? {})) {
     if (v !== undefined) url.searchParams.set(k, String(v));
   }
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", "X-Belo-Request": "1" };
   if (opts.body !== undefined) headers["Content-Type"] = "application/json";
-  if (opts.token) headers["Authorization"] = `Bearer ${opts.token}`;
+  if (opts.token) headers["X-Belo-Session"] = opts.token;
 
   let res: Response;
   try {
     res = await fetch(url.toString(), {
       method: opts.method ?? "GET",
-      credentials: "omit",
+      credentials: "same-origin",
       redirect: "error",
-      cache: opts.token || opts.body !== undefined ? "no-store" : "default",
+      cache: "no-store",
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : null,
     });
@@ -179,7 +179,14 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
 
 export const PAGE_SIZE = 12; // contrato: limite entre 1 e 100
 
+export interface SessaoResposta {
+  session_id: string | null;
+  usuario: Usuario | null;
+}
+
 export const api = {
+  sessao: () => apiRequest<SessaoResposta>("/session"),
+  logout: () => apiRequest<{ ok: boolean }>("/session", { method: "DELETE" }),
   listarProdutos: (limite: number, deslocamento: number) =>
     apiRequest<Produto[]>("/produtos", {
       query: {
@@ -191,6 +198,6 @@ export const api = {
   criarUsuario: (dados: UsuarioCriar) =>
     apiRequest<Usuario>("/usuarios", { method: "POST", body: dados }),
   login: (email: string, senha: string) =>
-    apiRequest<TokenResposta>("/auth/login", { method: "POST", body: { email, senha } }),
+    apiRequest<SessaoResposta>("/auth/login", { method: "POST", body: { email, senha } }),
   meusDados: (token: string) => apiRequest<Usuario>("/usuarios/me", { token }),
 };

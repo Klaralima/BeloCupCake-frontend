@@ -11,8 +11,8 @@ it("não guarda respostas privadas no cache nem segue redirecionamentos", async 
   const { apiRequest } = await import("./api");
   await apiRequest("/usuarios/me", { token: "token-teste" });
   expect(fetcher).toHaveBeenCalledWith(
-    "https://api.example.com/usuarios/me",
-    expect.objectContaining({ cache: "no-store", credentials: "omit", redirect: "error" }),
+    window.location.origin + "/bff/usuarios/me",
+    expect.objectContaining({ cache: "no-store", credentials: "same-origin", redirect: "error" }),
   );
 });
 it("informa qual sessão recebeu 401 para não encerrar uma conta mais recente", async () => {

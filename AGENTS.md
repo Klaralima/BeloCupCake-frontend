@@ -30,4 +30,4 @@ use the editor.
 <!-- LOVABLE:END -->
 
 - All HTTP calls to the external FastAPI backend go through src/lib/api.ts (base URL from VITE_API_BASE_URL); why: one place for config, auth header and error parsing.
-- Session token lives only in React memory (src/lib/auth.tsx); why: first-version requirement, reload requires login.
+- Session JWT lives only in a server-issued HttpOnly cookie (src/server/session.ts). Browser memory holds a non-secret fingerprint; all browser API calls use /bff. Never return JWTs to JavaScript. Synchronize session changes across tabs and preserve CSRF and stale-session checks.

@@ -1,4 +1,5 @@
 import "./lib/error-capture";
+import { handleSession } from "./server/session";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
@@ -50,6 +51,8 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const sessionResponse = await handleSession(request);
+      if (sessionResponse) return sessionResponse;
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

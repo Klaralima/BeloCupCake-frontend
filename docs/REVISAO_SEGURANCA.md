@@ -1,3 +1,5 @@
+> Atualização posterior: a sessão em memória descrita nesta revisão foi substituída por cookie HttpOnly e intermediário no servidor. Consulte [SESSAO.md](SESSAO.md) para o comportamento atual. As chamadas do navegador agora incluem cookies apenas para o próprio site.
+
 # Revisão de segurança do frontend — 08/11/2026
 
 ## Escopo e método

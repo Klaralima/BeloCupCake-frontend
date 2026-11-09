@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -31,14 +32,20 @@ export function SiteHeader() {
           )}
           {usuario ? (
             <>
-              <span className="hidden px-2 text-sm text-muted-foreground sm:inline">Olá, {usuario.nome.split(" ")[0]}</span>
+              <span className="hidden px-2 text-sm text-muted-foreground sm:inline">
+                Olá, {usuario.nome.split(" ")[0]}
+              </span>
               <Button
                 variant="outline"
                 size="sm"
                 className="rounded-full"
-                onClick={() => {
-                  logout();
-                  navigate({ to: "/login", replace: true });
+                onClick={async () => {
+                  try {
+                    await logout();
+                    navigate({ to: "/login", replace: true });
+                  } catch {
+                    toast.error("Não foi possível sair. Verifique sua conexão e tente novamente.");
+                  }
                 }}
               >
                 Sair

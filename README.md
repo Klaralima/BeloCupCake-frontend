@@ -1,6 +1,6 @@
 # BeloCupCake — Frontend
 
-Interface web responsiva do projeto acadêmico BeloCupCake, com catálogo, compra de cupcakes e áreas de administração e entrega. O repositório mantém seu nome original `pixel-perfect-replica`, mas o aplicativo desenvolvido é o BeloCupCake.
+Interface web responsiva do projeto acadêmico BeloCupCake, com catálogo, compra de cupcakes e áreas de administração e entrega.
 
 ## Links
 
@@ -32,8 +32,8 @@ React, TypeScript, TanStack Start/Router, TanStack Query, Vite, Tailwind CSS e c
 Ambiente utilizado na validação local: Node.js 24 e npm.
 
 ```bash
-git clone https://github.com/Klaralima/pixel-perfect-replica.git
-cd pixel-perfect-replica
+git clone https://github.com/Klaralima/BeloCupCake-frontend.git
+cd BeloCupCake-frontend
 bun install --frozen-lockfile
 ```
 
@@ -68,7 +68,7 @@ Variáveis com prefixo `VITE_` são incorporadas ao código do navegador. Não c
 | `src/components/Administration.tsx` | Gestão de produtos e cadastro de regiões/bairros |
 | `src/components/RoleHome.tsx` | Área conforme perfil autenticado |
 | `src/lib/api.ts` | Cliente HTTP central e tratamento de respostas da API |
-| `src/lib/auth.tsx` | Sessão em memória, login, logout e perfil |
+| `src/lib/auth.tsx` | Recuperação da sessão, sincronização entre abas, login e logout |
 | `src/components/ui/` | Componentes visuais reutilizáveis |
 
 O arquivo `src/routeTree.gen.ts` é gerado pela ferramenta de rotas e não deve ser editado manualmente.
@@ -94,10 +94,14 @@ O projeto utiliza TanStack Start e a configuração de build do Lovable, com com
 
 ## Sessão e limitações
 
-Token e carrinho permanecem apenas na memória. Recarregar a página exige novo login e limpa o carrinho. Não há pagamento online, upload de fotos ou rastreamento GPS. Não há persistência da sessão entre recargas. Os perfis privilegiados são preparados pela responsável, e não selecionados no cadastro público.
+A sessão permanece em cookie HttpOnly, Secure e SameSite=Lax, no endereço do front, até a expiração definida pela API ou a saída. Atualizar a página recupera a conta. Abas do mesmo perfil compartilham a sessão; trocar de conta exige sair. O carrinho permanece em memória e é limpo ao recarregar ou trocar de conta. Não há pagamento online, upload de fotos ou rastreamento GPS. Os perfis privilegiados são preparados pela responsável, e não selecionados no cadastro público.
 
 Para avaliação acadêmica, entregue as senhas das contas demonstrativas em canal privado e conceda acesso aos repositórios se permanecerem privados.
 
 ## Revisão de segurança
 
 Consulte o [relatório da revisão de 08/11/2026](docs/REVISAO_SEGURANCA.md) para os achados, correções e limites da análise. A URL da API e o exemplo de localhost são públicos por natureza. Nunca use variáveis `VITE_` para senhas ou chaves privadas.
+
+## Sessão compartilhada
+
+A camada de servidor do TanStack Start encaminha `/bff/*` para a API configurada. Não é necessário mudar a VPS. O JWT não é enviado ao JavaScript: um identificador público é usado para detectar abas desatualizadas, mas não autentica sem o cookie. Detalhes e roteiro de teste: [SESSAO.md](docs/SESSAO.md).
