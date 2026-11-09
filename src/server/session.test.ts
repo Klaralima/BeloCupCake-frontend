@@ -99,3 +99,24 @@ it("exige sair antes de substituir uma conta conectada", async () => {
   expect(fetcher).toHaveBeenCalledTimes(1);
   expect(r.headers.has("set-cookie")).toBe(false);
 });
+it("conta desativada deixa de ser restaurada sem prender a tela de acesso", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({}, { status: 403 })));
+  const r = (await handleSession(
+    req("/session", "GET", { cookie: `__Host-belocupcake=${jwt}` }),
+    base,
+  ))!;
+  expect(r.status).toBe(200);
+  expect(await r.json()).toEqual({ session_id: null, usuario: null });
+});
+it("recusa redirecionamento do backend sem seguir destino externo", async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValue(
+      new Response(null, { status: 307, headers: { Location: "https://evil.example" } }),
+    );
+  vi.stubGlobal("fetch", fetcher);
+  const r = (await handleSession(req("/produtos"), base))!;
+  expect(r.status).toBe(502);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(fetcher.mock.calls[0]![1].redirect).toBe("manual");
+});

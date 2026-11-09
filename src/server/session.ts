@@ -45,15 +45,19 @@ export async function handleSession(request: Request, base = BASE): Promise<Resp
     const headers: Record<string, string> = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (bearer) headers["Authorization"] = `Bearer ${bearer}`;
-    return fetch(base + target, {
+    const response = await fetch(base + target, {
       method: verb,
       headers,
       body: body ?? null,
-      redirect: "error",
+      redirect: "manual",
       credentials: "omit",
       cache: "no-store",
       signal: AbortSignal.timeout(15000),
     });
+    // Workers não implementa redirect:error; rejeitamos 3xx explicitamente.
+    if (response.status >= 300 && response.status < 400)
+      throw new Error("Redirecionamento recusado.");
+    return response;
   };
   try {
     if (path === "/session" && method === "DELETE")
@@ -61,7 +65,8 @@ export async function handleSession(request: Request, base = BASE): Promise<Resp
     if (path === "/session" && method === "GET") {
       if (!token) return json({ session_id: null, usuario: null });
       const response = await upstream("/usuarios/me");
-      if (response.status === 401) return json({ session_id: null, usuario: null });
+      if (response.status === 401 || response.status === 403)
+        return json({ session_id: null, usuario: null });
       if (!response.ok)
         return json({ detail: "Não foi possível verificar a sessão." }, response.status);
       return json({ session_id: fingerprint, usuario: await response.json() });
@@ -74,7 +79,7 @@ export async function handleSession(request: Request, base = BASE): Promise<Resp
             { detail: "Você já está conectado. Clique em Sair antes de trocar de conta." },
             409,
           );
-        if (existing.status !== 401)
+        if (existing.status !== 401 && existing.status !== 403)
           return json({ detail: "Não foi possível verificar a sessão atual." }, 503);
       }
       const body = await request.text();
