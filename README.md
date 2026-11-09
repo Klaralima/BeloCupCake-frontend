@@ -82,7 +82,7 @@ bun run build
 bun audit
 ```
 
-A última validação local registrou 8 testes aprovados, TypeScript sem erros e build concluído. Os testes incluem limite de estoque no carrinho, prevenção de envio duplicado, manutenção do carrinho quando a compra é rejeitada e chamada de aceite da entrega. As chamadas HTTP são simuladas nos testes; valide também o fluxo com a API publicada.
+A última validação local registrou 29 testes aprovados, TypeScript sem erros e build concluído. Os testes incluem limite de estoque no carrinho, prevenção de envio duplicado, manutenção do carrinho quando a compra é rejeitada e chamada de aceite da entrega. As chamadas HTTP são simuladas nos testes; valide também o fluxo com a API publicada.
 
 Em 08/11/2026, a responsável pelo projeto confirmou manualmente o fluxo publicado de cadastro, compra, aceite e entrega.
 
