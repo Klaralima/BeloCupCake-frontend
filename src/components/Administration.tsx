@@ -15,6 +15,103 @@ interface Regiao {
   prazo_minutos: number;
   ativo: boolean;
 }
+interface BairroDisponivel {
+  id: number;
+  nome: string;
+  cidade: string;
+  uf: string;
+  taxa_entrega: string;
+  prazo_minutos: number;
+}
+const normalizarBusca = (valor: string) =>
+  valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .trim();
+
+function BairrosCadastrados() {
+  const [busca, setBusca] = useState("");
+  const bairros = useQuery({
+    queryKey: ["bairros-checkout"],
+    queryFn: async () => {
+      const todos: BairroDisponivel[] = [];
+      let pagina: BairroDisponivel[];
+      do {
+        pagina = await apiRequest<BairroDisponivel[]>("/bairros", {
+          query: { limite: 200, deslocamento: todos.length },
+        });
+        todos.push(...pagina);
+      } while (pagina.length === 200);
+      return todos;
+    },
+    retry: false,
+  });
+  const termo = normalizarBusca(busca);
+  const filtrados =
+    bairros.data?.filter((b) => normalizarBusca(`${b.nome} ${b.cidade} ${b.uf}`).includes(termo)) ??
+    [];
+  return (
+    <section aria-labelledby="bairros-cadastrados" className="space-y-3 border-t pt-4">
+      <h3 id="bairros-cadastrados" className="text-xl font-bold">
+        Bairros já cadastrados e disponíveis
+      </h3>
+      <p className="text-sm text-muted-foreground">
+        Confira a lista antes de cadastrar. São exibidos bairros ativos vinculados a regiões ativas.
+        O sistema também impede duplicidade de nome, cidade e UF no cadastro.
+      </p>
+      <label className="block">
+        Buscar bairro, cidade ou UF
+        <input
+          type="search"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          className="w-full rounded-lg border bg-background p-3"
+          placeholder="Ex.: Centro ou João Pessoa"
+        />
+      </label>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={bairros.isFetching}
+        onClick={() => bairros.refetch()}
+      >
+        Atualizar bairros
+      </Button>
+      {bairros.isPending ? (
+        <Loading label="Carregando bairros cadastrados..." />
+      ) : bairros.isError ? (
+        <ErrorState error={bairros.error} onRetry={() => bairros.refetch()} />
+      ) : (
+        <>
+          <p role="status">
+            {filtrados.length} de {bairros.data.length} bairros disponíveis
+          </p>
+          {bairros.data.length === 0 ? (
+            <p>Nenhum bairro disponível cadastrado.</p>
+          ) : filtrados.length === 0 ? (
+            <p>Nenhum bairro corresponde à busca.</p>
+          ) : (
+            <ul className="max-h-96 space-y-3 overflow-y-auto" aria-label="Bairros cadastrados">
+              {filtrados.map((b) => (
+                <li key={b.id} className="rounded-lg border p-3">
+                  <strong>{b.nome}</strong>
+                  <p>
+                    {b.cidade}/{b.uf}
+                  </p>
+                  <p className="text-sm">
+                    Entrega {formatPreco(b.taxa_entrega)} · {b.prazo_minutos} minutos
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 const panel = "my-5 space-y-4 rounded-2xl border bg-card p-5 shadow-card";
 
 export function Administration() {
@@ -278,6 +375,7 @@ function Regioes() {
               </li>
             ))}
           </ul>
+          <BairrosCadastrados />
           <form onSubmit={(e) => salvar(e, true)}>
             <fieldset disabled={ocupado || !q.data.some((r) => r.ativo)} className="space-y-3">
               <h3 className="text-xl font-bold">Novo bairro</h3>
