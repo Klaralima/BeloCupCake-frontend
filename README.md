@@ -82,7 +82,7 @@ bun run build
 bun audit
 ```
 
-A última validação local registrou 29 testes aprovados, TypeScript sem erros e build concluído. Os testes incluem limite de estoque no carrinho, prevenção de envio duplicado, manutenção do carrinho quando a compra é rejeitada e chamada de aceite da entrega. As chamadas HTTP são simuladas nos testes; valide também o fluxo com a API publicada.
+A última validação local registrou 30 testes aprovados, TypeScript sem erros e build concluído. Os testes incluem limite de estoque no carrinho, prevenção de envio duplicado, manutenção do carrinho quando a compra é rejeitada e chamada de aceite da entrega. As chamadas HTTP são simuladas nos testes; valide também o fluxo com a API publicada.
 
 Em 08/11/2026, a responsável pelo projeto confirmou manualmente o fluxo publicado de cadastro, compra, aceite e entrega.
 
@@ -105,3 +105,7 @@ Consulte o [relatório da revisão de 08/11/2026](docs/REVISAO_SEGURANCA.md) par
 ## Sessão compartilhada
 
 A camada de servidor do TanStack Start encaminha `/bff/*` para a API configurada. Não é necessário mudar a VPS. O JWT não é enviado ao JavaScript: um identificador público é usado para detectar abas desatualizadas, mas não autentica sem o cookie. Detalhes e roteiro de teste: [SESSAO.md](docs/SESSAO.md).
+
+## Carrinho com vários sabores
+
+Adicione cupcakes diretamente no catálogo ou na página do produto. Use **Continuar comprando** para reunir sabores e quantidades e, depois, **Finalizar compra**. O endereço é informado uma única vez para todo o pedido, com uma taxa de entrega. Fechar o carrinho ou voltar ao catálogo preserva o endereço durante essa compra; recarregar a página ou trocar de conta descarta o carrinho e seu endereço. A API existente recebe todos os itens em um único pedido e confere os valores e o estoque.

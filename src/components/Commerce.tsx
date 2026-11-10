@@ -52,15 +52,21 @@ interface Entrega {
 }
 const panel = "my-5 space-y-4 rounded-2xl border bg-card p-5 shadow-card";
 const input = "w-full rounded-lg border bg-background p-3";
-const Carrinho = createContext<{ itens: ItemCarrinho[]; adicionar: (produto: Produto) => void }>({
+const Carrinho = createContext<{
+  itens: ItemCarrinho[];
+  adicionar: (produto: Produto) => void;
+  processando: boolean;
+}>({
   itens: [],
   adicionar: () => {},
+  processando: false,
 });
 
 export function CompraProvider({ children }: { children: ReactNode }) {
   const { usuario } = useAuth();
   const [itens, setItens] = useState<ItemCarrinho[]>([]);
   const [aberto, setAberto] = useState(false);
+  const [processando, setProcessando] = useState(false);
   const [historico, setHistorico] = useState(false);
   useEffect(() => {
     setItens([]);
@@ -68,6 +74,7 @@ export function CompraProvider({ children }: { children: ReactNode }) {
     setHistorico(false);
   }, [usuario?.id]);
   function adicionar(produto: Produto) {
+    if (processando) return;
     setItens((atual) => {
       const existente = atual.find((item) => item.produto.id === produto.id);
       if (existente)
@@ -81,36 +88,43 @@ export function CompraProvider({ children }: { children: ReactNode }) {
     setAberto(true);
   }
   return (
-    <Carrinho.Provider value={{ itens, adicionar }}>
+    <Carrinho.Provider value={{ itens, adicionar, processando }}>
       {usuario?.perfil === "CLIENTE" && (
         <div className="mx-auto max-w-6xl px-4">
           <div className="mt-4 flex flex-wrap gap-3">
-            <Button variant="secondary" onClick={() => setAberto(!aberto)}>
+            <Button variant="secondary" disabled={processando} onClick={() => setAberto(!aberto)}>
               Carrinho ({itens.reduce((s, i) => s + i.quantidade, 0)})
             </Button>
             <Button variant="outline" onClick={() => setHistorico(!historico)}>
               Meus pedidos
             </Button>
           </div>
-          {aberto && (
-            <Checkout
-              itens={itens}
-              alterar={(id, quantidade) =>
-                setItens((atual) =>
-                  atual.flatMap((i) => {
-                    if (i.produto.id !== id) return [i];
-                    return quantidade <= 0
-                      ? []
-                      : [{ ...i, quantidade: Math.min(quantidade, i.produto.estoque) }];
-                  }),
-                )
-              }
-              concluir={() => {
-                setItens([]);
-                setAberto(false);
-                setHistorico(true);
-              }}
-            />
+          {itens.length > 0 && (
+            <div hidden={!aberto}>
+              <Checkout
+                continuar={() => setAberto(false)}
+                ocupar={setProcessando}
+                itens={itens}
+                alterar={(id, quantidade) =>
+                  setItens((atual) =>
+                    atual.flatMap((i) => {
+                      if (i.produto.id !== id) return [i];
+                      return quantidade <= 0
+                        ? []
+                        : [{ ...i, quantidade: Math.min(quantidade, i.produto.estoque) }];
+                    }),
+                  )
+                }
+                concluir={() => {
+                  setItens([]);
+                  setAberto(false);
+                  setHistorico(true);
+                }}
+              />
+            </div>
+          )}
+          {aberto && itens.length === 0 && (
+            <p className={panel}>Escolha os cupcakes no catálogo para começar.</p>
           )}
           {historico && <Pedidos perfil="CLIENTE" />}
         </div>
@@ -122,7 +136,7 @@ export function CompraProvider({ children }: { children: ReactNode }) {
 
 export function Comprar({ produto }: { produto: Produto }) {
   const { usuario } = useAuth();
-  const { adicionar } = useContext(Carrinho);
+  const { adicionar, processando } = useContext(Carrinho);
   if (!usuario)
     return (
       <Button asChild>
@@ -131,7 +145,11 @@ export function Comprar({ produto }: { produto: Produto }) {
     );
   if (usuario.perfil !== "CLIENTE") return null;
   return (
-    <Button disabled={!produto.ativo || produto.estoque < 1} onClick={() => adicionar(produto)}>
+    <Button
+      className="h-auto min-h-10 w-full whitespace-normal"
+      disabled={processando || !produto.ativo || produto.estoque < 1}
+      onClick={() => adicionar(produto)}
+    >
       Adicionar ao carrinho
     </Button>
   );
@@ -141,14 +159,19 @@ function Checkout({
   itens,
   alterar,
   concluir,
+  continuar,
+  ocupar,
 }: {
   itens: ItemCarrinho[];
   alterar: (id: number, quantidade: number) => void;
   concluir: () => void;
+  continuar: () => void;
+  ocupar: (valor: boolean) => void;
 }) {
   const { token } = useAuth();
   const client = useQueryClient();
   const [bairroId, setBairroId] = useState("");
+  const [enderecoAberto, setEnderecoAberto] = useState(false);
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
   const trava = useRef(false);
@@ -174,9 +197,10 @@ function Checkout({
   );
   async function finalizar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (trava.current || !bairro || !itens.length) return;
+    if (trava.current || !enderecoAberto || !bairro || !itens.length) return;
     trava.current = true;
     setEnviando(true);
+    ocupar(true);
     setErro("");
     const dados = new FormData(event.currentTarget);
     try {
@@ -201,11 +225,15 @@ function Checkout({
     } finally {
       trava.current = false;
       setEnviando(false);
+      ocupar(false);
     }
   }
   return (
     <section className={panel}>
       <h2 className="text-2xl font-bold">Seu carrinho</h2>
+      <p>
+        Junte sabores diferentes no mesmo pedido. Informe o endereço uma única vez ao finalizar.
+      </p>
       {itens.length === 0 ? (
         <p>Escolha um cupcake no catálogo para começar.</p>
       ) : (
@@ -241,65 +269,96 @@ function Checkout({
                 </div>
               </div>
             ))}
-            {bairros.isPending && <Loading />}
-            {bairros.isError && (
-              <ErrorState error={bairros.error} onRetry={() => bairros.refetch()} />
-            )}
-            <label className="block">
-              Bairro
-              <select
-                required
-                className={input}
-                value={bairroId}
-                onChange={(e) => setBairroId(e.target.value)}
-              >
-                <option value="">Selecione o bairro atendido</option>
-                {bairros.data?.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.nome} — {b.cidade}/{b.uf}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {bairros.data?.length === 0 && <p>Nenhum bairro disponível para entrega.</p>}
-            <Campo nome="logradouro" titulo="Logradouro" max={200} />
-            <Campo nome="numero" titulo="Número" max={20} />
-            <Campo nome="complemento" titulo="Complemento" max={150} obrigatorio={false} />
-            <label className="block">
-              CEP
-              <input
-                name="cep"
-                required
-                pattern="[0-9]{5}-?[0-9]{3}"
-                placeholder="58000-000"
-                className={input}
-              />
-            </label>
-            <p>Subtotal estimado {formatPreco(String(subtotal / 100))}</p>
-            {bairro && (
-              <p>
-                Entrega {formatPreco(bairro.taxa_entrega)} · Prazo estimado {bairro.prazo_minutos}{" "}
-                minutos
-                <br />
-                Total estimado{" "}
-                <strong>
-                  {formatPreco(
-                    String((subtotal + Math.round(Number(bairro.taxa_entrega) * 100)) / 100),
-                  )}
-                </strong>
-              </p>
-            )}
-            <p className="text-sm text-muted-foreground">
-              Pagamento presencial. Os preços e o estoque serão conferidos ao finalizar.
+            <p>
+              Subtotal estimado <strong>{formatPreco(String(subtotal / 100))}</strong>
             </p>
-            {erro && (
-              <p role="alert" className="text-destructive">
-                {erro}
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" variant="outline" asChild>
+                <Link
+                  to="/"
+                  onClick={(event) => {
+                    if (enviando) {
+                      event.preventDefault();
+                      return;
+                    }
+                    setEnderecoAberto(false);
+                    continuar();
+                  }}
+                >
+                  Continuar comprando
+                </Link>
+              </Button>
+              {!enderecoAberto && (
+                <Button type="button" onClick={() => setEnderecoAberto(true)}>
+                  Finalizar compra
+                </Button>
+              )}
+            </div>
+            <fieldset
+              hidden={!enderecoAberto}
+              disabled={!enderecoAberto || enviando}
+              className="space-y-4"
+            >
+              <legend className="text-xl font-semibold">Endereço de entrega do pedido</legend>
+              {bairros.isPending && <Loading />}
+              {bairros.isError && (
+                <ErrorState error={bairros.error} onRetry={() => bairros.refetch()} />
+              )}
+              <label className="block">
+                Bairro
+                <select
+                  required
+                  className={input}
+                  value={bairroId}
+                  onChange={(e) => setBairroId(e.target.value)}
+                >
+                  <option value="">Selecione o bairro atendido</option>
+                  {bairros.data?.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.nome} — {b.cidade}/{b.uf}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {bairros.data?.length === 0 && <p>Nenhum bairro disponível para entrega.</p>}
+              <Campo nome="logradouro" titulo="Logradouro" max={200} />
+              <Campo nome="numero" titulo="Número" max={20} />
+              <Campo nome="complemento" titulo="Complemento" max={150} obrigatorio={false} />
+              <label className="block">
+                CEP
+                <input
+                  name="cep"
+                  required
+                  pattern="[0-9]{5}-?[0-9]{3}"
+                  placeholder="58000-000"
+                  className={input}
+                />
+              </label>
+              {bairro && (
+                <p>
+                  Entrega {formatPreco(bairro.taxa_entrega)} · Prazo estimado {bairro.prazo_minutos}{" "}
+                  minutos
+                  <br />
+                  Total estimado{" "}
+                  <strong>
+                    {formatPreco(
+                      String((subtotal + Math.round(Number(bairro.taxa_entrega) * 100)) / 100),
+                    )}
+                  </strong>
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground">
+                Pagamento presencial. Os preços e o estoque serão conferidos ao finalizar.
               </p>
-            )}
-            <Button disabled={!bairro || enviando} type="submit">
-              {enviando ? "Finalizando..." : "Confirmar pedido"}
-            </Button>
+              {erro && (
+                <p role="alert" className="text-destructive">
+                  {erro}
+                </p>
+              )}
+              <Button disabled={!bairro || enviando} type="submit">
+                {enviando ? "Finalizando..." : "Confirmar pedido"}
+              </Button>
+            </fieldset>
           </fieldset>
         </form>
       )}

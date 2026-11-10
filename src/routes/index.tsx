@@ -1,3 +1,4 @@
+import { Comprar } from "@/components/Commerce";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { api, PAGE_SIZE } from "@/lib/api";
@@ -10,9 +11,15 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Catálogo de cupcakes | BeloCupCake" },
-      { name: "description", content: "Escolha seus cupcakes artesanais favoritos no BeloCupCake." },
+      {
+        name: "description",
+        content: "Escolha seus cupcakes artesanais favoritos no BeloCupCake.",
+      },
       { property: "og:title", content: "Catálogo de cupcakes | BeloCupCake" },
-      { property: "og:description", content: "Escolha seus cupcakes artesanais favoritos no BeloCupCake." },
+      {
+        property: "og:description",
+        content: "Escolha seus cupcakes artesanais favoritos no BeloCupCake.",
+      },
     ],
   }),
   component: Catalogo,
@@ -23,7 +30,8 @@ function Catalogo() {
     queryKey: ["produtos"],
     queryFn: ({ pageParam }) => api.listarProdutos(PAGE_SIZE, pageParam),
     initialPageParam: 0,
-    getNextPageParam: (last, pages) => (last.length < PAGE_SIZE ? undefined : pages.length * PAGE_SIZE),
+    getNextPageParam: (last, pages) =>
+      last.length < PAGE_SIZE ? undefined : pages.length * PAGE_SIZE,
     retry: false,
   });
   const produtos = q.data?.pages.flat() ?? [];
@@ -40,7 +48,10 @@ function Catalogo() {
       ) : q.isError && produtos.length === 0 ? (
         <ErrorState error={q.error} onRetry={() => q.refetch()} />
       ) : produtos.length === 0 ? (
-        <Empty title="Nenhum cupcake disponível" text="Volte em breve para conferir as novidades." />
+        <Empty
+          title="Nenhum cupcake disponível"
+          text="Volte em breve para conferir as novidades."
+        />
       ) : (
         <>
           <ul className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
@@ -60,6 +71,9 @@ function Catalogo() {
                     <p className="text-lg font-bold text-primary">{formatPreco(p.preco)}</p>
                   </div>
                 </Link>
+                <div className="mt-2">
+                  <Comprar produto={p} />
+                </div>
               </li>
             ))}
           </ul>
@@ -68,7 +82,12 @@ function Catalogo() {
           )}
           {q.hasNextPage && (
             <div className="mt-8 flex justify-center">
-              <Button size="touch" variant="secondary" disabled={q.isFetchingNextPage} onClick={() => q.fetchNextPage()}>
+              <Button
+                size="touch"
+                variant="secondary"
+                disabled={q.isFetchingNextPage}
+                onClick={() => q.fetchNextPage()}
+              >
                 {q.isFetchingNextPage ? "Carregando..." : "Carregar mais"}
               </Button>
             </div>
